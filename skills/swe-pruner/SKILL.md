@@ -5,6 +5,18 @@ description: Opt-in SWE-Pruner integration for Codex (pcat / pruned cat + model 
 
 # SWE-Pruner
 
+## 使用模式：显式使用（Opt-in） vs 默认使用（Default）
+
+本 skill **默认是显式使用（opt-in）**：
+
+- 安装 skill 本身不会自动改变 Codex 的读文件策略。
+- 只有当用户明确要求（例如提到 `SWE-Pruner` / `pcat` / `$swe-pruner` / “prune context”）时，才建议走裁剪流程。
+
+如果你希望在 Codex 里“默认就尽量先裁剪再分析”，可以通过配置启用默认模式：
+
+- **默认使用（软）**：在 `~/.codex/config.toml` 里加入 `developer_instructions`（提示 Codex 遇到大文件优先走 `pcat`，仅在用户明确要求原文时才读全文）。
+- **默认使用（硬）**：启用 strict mode（Codex `rules` 禁止 `Get-Content`/`cat`/`type` 等全文 dump 命令，强制走 `pcat`；注意会比较“硬”）。
+
 ## 你在什么时候需要它
 
 - 需要把「大量代码/日志/patch」喂给 LLM，但上下文太长、成本太高、延迟太大。

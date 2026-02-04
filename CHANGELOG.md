@@ -11,6 +11,10 @@ This project follows a lightweight SemVer-ish scheme:
 
 - (placeholder)
 
+## v0.1.2 - 2026-02-04
+
+- Docs: added explicit instructions for **opt-in (explicit use)** vs **default use** configuration.
+
 ## v0.1.1 - 2026-02-04
 
 - Docs: added a 3-tier guide to approximate “prune on every file read”:

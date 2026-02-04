@@ -21,7 +21,7 @@ Windows PowerShell:
 ```powershell
 python "$HOME\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" `
   --repo wh0amibjm/swe-pruner-codex-skill `
-  --ref v0.1.1 `
+  --ref v0.1.2 `
   --path skills/swe-pruner
 ```
 
@@ -30,11 +30,46 @@ macOS/Linux/WSL:
 ```bash
 python3 "$HOME/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
   --repo wh0amibjm/swe-pruner-codex-skill \
-  --ref v0.1.1 \
+  --ref v0.1.2 \
   --path skills/swe-pruner
 ```
 
 Restart `codex` after installation.
+
+## Modes: opt-in vs default
+
+This skill is designed to be **opt-in by default**:
+
+- Installing the skill does **not** change Codex behavior automatically.
+- You explicitly choose when to use pruning.
+
+If you want pruning to be the “default” behavior, you enable it via config/rules (see below).
+
+### Mode A (opt-in / explicit use)
+
+When you want pruning, you explicitly call `pcat` or mention `$swe-pruner`.
+
+- Keep it opt-in:
+  - Do **not** add any `developer_instructions` snippet for pruning, and
+  - Do **not** enable strict rules.
+- Use it explicitly:
+  - Run `pcat.py` / `pcat.ps1`, or
+  - In a prompt: “Use `$swe-pruner` to prune this file before analysis.”
+
+To switch back to opt-in from default mode:
+
+- Remove the pruning snippet from `~/.codex/config.toml`, and/or
+- Remove/rename the strict `.rules` file from `~/.codex/rules/`.
+
+### Mode B (default / soft guardrail)
+
+If you want Codex to *prefer* pruning for large file reads by default, add a `developer_instructions` guardrail in `~/.codex/config.toml` (Tier 1 below).
+
+This is still not a real hook, but it often gets you the desired behavior.
+
+### Mode C (default / hard guardrail)
+
+If you want a closer hook-like behavior, enable strict mode rules (Tier 2 below). This can be blunt and may block even small-file reads.
 
 ## Setup (one-time)
 
