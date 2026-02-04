@@ -10,8 +10,7 @@ Use it when you need to read/inspect **very large files**, **long logs**, or **h
 - ✅ Provides scripts to download weights and run a local pruner server.
 - ❌ Codex CLI currently does **not** expose a Claude Code–style “hook” that transparently intercepts every file read.
   This skill can only approximate that experience by:
-  - Strong **defaults** (`developer_instructions`) and
-  - Optional **strict mode** (Codex `rules`, see below).
+  - Tiered opt-in strategies (see below).
 
 ## Install (pin a release)
 
@@ -22,7 +21,7 @@ Windows PowerShell:
 ```powershell
 python "$HOME\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" `
   --repo wh0amibjm/swe-pruner-codex-skill `
-  --ref v0.1.0 `
+  --ref v0.1.1 `
   --path skills/swe-pruner
 ```
 
@@ -31,7 +30,7 @@ macOS/Linux/WSL:
 ```bash
 python3 "$HOME/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
   --repo wh0amibjm/swe-pruner-codex-skill \
-  --ref v0.1.0 \
+  --ref v0.1.1 \
   --path skills/swe-pruner
 ```
 
@@ -102,9 +101,13 @@ Prune command output / logs (stdin mode):
 git diff | python3 "$HOME/.codex/skills/swe-pruner/scripts/pcat.py" --stdin --query "Focus on the relevant hunks"
 ```
 
-## (Recommended) Make Codex prefer pruning for large files
+## Approximating “prune on every file read” (3 tiers)
 
-Add a `developer_instructions` guardrail in `~/.codex/config.toml`:
+Codex does not have a real “read file hook”, so you have 3 increasingly strict options.
+
+### Tier 1 (recommended): soft guardrail via `developer_instructions`
+
+This is the least risky and works everywhere. You opt-in by adding a snippet in `~/.codex/config.toml`:
 
 ```toml
 developer_instructions = """
@@ -115,11 +118,14 @@ Only read the full file if the user explicitly requests the raw/full text.
 """
 ```
 
-This is guidance, not a hard hook.
+Notes:
 
-## (Optional) Strict mode: forbid raw file dumps via Codex rules
+- This is guidance, not a hard hook. The model can still ignore it in edge cases.
+- If you want **opt-in only**, do not add this snippet; just call `pcat` explicitly when you want pruning.
 
-If you want a closer “hook-like” behavior, you can use Codex `rules` to forbid common “dump whole file” commands (`Get-Content`, `cat`, `type`, ...), forcing the agent to use `pcat` instead.
+### Tier 2: hard guardrail via Codex `rules` (strict mode)
+
+If you want closer “hook-like” behavior, use Codex `rules` to forbid common “dump whole file” commands (`Get-Content`, `cat`, `type`, ...), forcing the agent to use `pcat` instead.
 
 This repo ships a rule template inside the installed skill folder:
 
@@ -134,6 +140,51 @@ Tradeoffs:
 
 - This is **blunt** (prefix-based), not “file-size aware” — it may block even small-file reads.
 - Keep a quick escape hatch: rename the rule file to disable it.
+
+### Tier 3 (advanced): shell-level interception (alias/wrapper)
+
+If you really want “every time I type `cat file` it gets pruned”, you can override shell commands/aliases.
+This is **not** Codex-native; it’s your shell config. Use with care.
+
+Pros:
+
+- Works even outside Codex (your own terminal habits).
+
+Cons:
+
+- Risky: you may break scripts/tools that expect raw `cat` output.
+- `pcat` needs a task focus query; without a good query, pruning quality drops.
+
+Example (bash/zsh): override `cat` for single large files only
+
+```bash
+# ~/.bashrc or ~/.zshrc
+export PCAT_QUERY="${PCAT_QUERY:-Focus on the parts relevant to the current task}"
+pcat_file() { python3 "$HOME/.codex/skills/swe-pruner/scripts/pcat.py" --file "$1" --query "$PCAT_QUERY"; }
+cat() {
+  if [ "$#" -eq 1 ] && [ -f "$1" ] && [ "$(wc -c < "$1")" -gt 50000 ]; then
+    pcat_file "$1"
+  else
+    command cat "$@"
+  fi
+}
+```
+
+Example (PowerShell): override `cat` after removing the default alias
+
+```powershell
+# $PROFILE
+Remove-Item Alias:cat -ErrorAction SilentlyContinue
+$env:PCAT_QUERY = $env:PCAT_QUERY ?? "Focus on the parts relevant to the current task"
+function cat {
+  param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
+  if ($Args.Count -eq 1 -and (Test-Path $Args[0]) -and ((Get-Item $Args[0]).Length -gt 50000)) {
+    powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\swe-pruner\scripts\pcat.ps1" -File $Args[0] -Query $env:PCAT_QUERY
+  } else {
+    Get-Content @Args
+  }
+}
+```
 
 ## Privacy / Security notes
 

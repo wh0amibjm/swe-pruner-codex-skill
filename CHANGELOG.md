@@ -11,6 +11,13 @@ This project follows a lightweight SemVer-ish scheme:
 
 - (placeholder)
 
+## v0.1.1 - 2026-02-04
+
+- Docs: added a 3-tier guide to approximate “prune on every file read”:
+  - Tier 1: `developer_instructions` (soft guardrail)
+  - Tier 2: Codex `rules` (strict mode)
+  - Tier 3: shell-level alias/wrapper (advanced, risky)
+
 ## v0.1.0 - 2026-02-04
 
 - Initial publishable Codex skill packaging for SWE-Pruner:
@@ -18,4 +25,3 @@ This project follows a lightweight SemVer-ish scheme:
   - One-time model download script
   - Local server start scripts
   - Optional strict-mode Codex rules template (see `skills/swe-pruner/references/`)
-

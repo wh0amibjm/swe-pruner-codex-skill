@@ -77,6 +77,30 @@ Codex 没有像 Claude Code CLI 那样的 hook 能在“加载上下文/读文�
 stdin 示例（推荐给日志/命令输出裁剪用）：
 - `git diff | python scripts/pcat.py --stdin --query "只保留与登录相关的改动"`
 
+## 近似模拟“每次读文件都先裁剪”的三档方案（从稳妥到强硬）
+
+Codex 目前没有真正的“读文件 hook”。想更接近“每次读文件都先裁剪”，可以按需求选择：
+
+### 方案 1（推荐）：软引导（`developer_instructions`）
+
+在 `~/.codex/config.toml` 里加入 guardrail，让 Codex 在读取大文件时优先走 `pcat`。
+
+优点：最稳、跨平台、可控。缺点：不是强制，模型仍可能在极端情况下忽略。
+
+### 方案 2：硬引导（Codex `rules` / strict mode）
+
+用 prefix rules 禁止常见“全文 dump”命令（`Get-Content`/`cat`/`type` 等），强制 agent 只能走 `pcat`。
+
+本 skill 自带规则模板：`references/strict-file-read.rules`（启用方式见下文 strict mode 小节）。
+
+优点：更像 hook。缺点：prefix 规则不看文件大小，会比较“硬”，可能小文件也被拦截。
+
+### 方案 3（高级/风险更高）：Shell 级别拦截（alias / wrapper）
+
+在 PowerShell Profile / bashrc 里把 `cat`/`type` 重定向到 `pcat`（通常仅对“单文件且超过一定大小”才启用），并准备一个逃生通道（例如使用 `command cat` / 另起 `rawcat`）。
+
+优点：你的终端习惯层面也会自动裁剪。缺点：可能破坏脚本兼容性，且 `pcat` 仍需要一个合适的 focus query。
+
 ## 可选：Strict mode（更接近“hook”的强制策略）
 
 Codex 没有真正的“读文件 hook”，但你可以用 Codex `rules` 去**禁止**常见的“全文 dump”命令（例如 `Get-Content`/`cat`/`type`），从而强制 agent 只能走 `pcat`。
