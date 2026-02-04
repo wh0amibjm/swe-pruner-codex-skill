@@ -1,0 +1,4 @@
+interface:
+  display_name: "SWE-Pruner (Pruned File Read)"
+  short_description: "Opt-in context pruning (pcat)"
+  default_prompt: "Use $swe-pruner to prune large files/logs/diffs before analysis (opt-in; only when explicitly requested)."

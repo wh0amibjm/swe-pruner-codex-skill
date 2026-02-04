@@ -1,0 +1,6 @@
+# Keep portable line endings for shell scripts to avoid `/usr/bin/env: bash\r` issues.
+*.sh text eol=lf
+
+# Rules are shared across OSes; keep them stable.
+*.rules text eol=lf
+

@@ -1,0 +1,59 @@
+# Strict mode: forbid raw file dumps to force using SWE-Pruner pcat.
+#
+# How to enable:
+#   Copy this file into your Codex rules directory, then restart `codex`:
+#     - Windows: C:\Users\<you>\.codex\rules\
+#     - macOS/Linux: ~/.codex/rules/
+#
+# Escape hatch:
+#   Rename this file so it no longer ends with `.rules` (or delete it).
+#
+# IMPORTANT:
+#   This is prefix-based (command token prefix), NOT file-size-aware.
+#   It can block even small-file reads. Use only if you accept the tradeoff.
+#
+# Replacement command:
+#   python "$HOME/.codex/skills/swe-pruner/scripts/pcat.py" --file "<path>" --query "<focus question>"
+
+prefix_rule(
+  pattern=["Get-Content"],
+  decision="forbidden",
+  justification="Raw file dumps are disabled (strict mode). Use SWE-Pruner pcat instead: python \"$HOME/.codex/skills/swe-pruner/scripts/pcat.py\" --file \"<path>\" --query \"<focus question>\"",
+)
+
+prefix_rule(
+  pattern=["cat"],
+  decision="forbidden",
+  justification="Raw file dumps are disabled (strict mode). Use SWE-Pruner pcat instead: python \"$HOME/.codex/skills/swe-pruner/scripts/pcat.py\" --file \"<path>\" --query \"<focus question>\"",
+)
+
+prefix_rule(
+  pattern=["type"],
+  decision="forbidden",
+  justification="Raw file dumps are disabled (strict mode). Use SWE-Pruner pcat instead: python \"$HOME/.codex/skills/swe-pruner/scripts/pcat.py\" --file \"<path>\" --query \"<focus question>\"",
+)
+
+prefix_rule(
+  pattern=["gc"],
+  decision="forbidden",
+  justification="Raw file dumps are disabled (strict mode). Use SWE-Pruner pcat instead: python \"$HOME/.codex/skills/swe-pruner/scripts/pcat.py\" --file \"<path>\" --query \"<focus question>\"",
+)
+
+prefix_rule(
+  pattern=["more"],
+  decision="forbidden",
+  justification="Raw file dumps are disabled (strict mode). Use SWE-Pruner pcat instead: python \"$HOME/.codex/skills/swe-pruner/scripts/pcat.py\" --file \"<path>\" --query \"<focus question>\"",
+)
+
+prefix_rule(
+  pattern=["cmd", "/c", "type"],
+  decision="forbidden",
+  justification="Raw file dumps are disabled (strict mode). Use SWE-Pruner pcat instead: python \"$HOME/.codex/skills/swe-pruner/scripts/pcat.py\" --file \"<path>\" --query \"<focus question>\"",
+)
+
+prefix_rule(
+  pattern=["cmd.exe", "/c", "type"],
+  decision="forbidden",
+  justification="Raw file dumps are disabled (strict mode). Use SWE-Pruner pcat instead: python \"$HOME/.codex/skills/swe-pruner/scripts/pcat.py\" --file \"<path>\" --query \"<focus question>\"",
+)
+
