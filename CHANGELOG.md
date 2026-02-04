@@ -11,6 +11,10 @@ This project follows a lightweight SemVer-ish scheme:
 
 - (placeholder)
 
+## v0.1.3 - 2026-02-04
+
+- Docs: added upstream repo reference and a brief summary of the upstream-reported effectiveness numbers.
+
 ## v0.1.2 - 2026-02-04
 
 - Docs: added explicit instructions for **opt-in (explicit use)** vs **default use** configuration.

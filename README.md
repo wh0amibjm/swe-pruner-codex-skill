@@ -4,6 +4,23 @@ This repo packages **SWE-Pruner** (task-aware context pruning) into a **Codex CL
 
 Use it when you need to read/inspect **very large files**, **long logs**, or **huge diffs**: prune context *before* it enters the model to cut token cost while keeping relevant implementation details.
 
+## Upstream project + reported effectiveness
+
+This is a packaging / integration repo. The upstream SWE-Pruner project lives at:
+
+- https://github.com/Ayanami1314/swe-pruner
+
+Reported effectiveness (from the upstream README / paper summary):
+
+- A lightweight neural skimmer (~0.6B parameters) selects relevant lines conditioned on an explicit goal/hint.
+- Evaluated across four benchmarks and multiple models.
+- Reported **23–54% token reduction** on multi-turn agent tasks (e.g. SWE-Bench Verified) and up to **14.84× compression** on single-turn tasks (e.g. LongCodeQA), with minimal performance impact.
+
+Notes:
+
+- These numbers are research evaluation results; your mileage will vary based on task, focus query quality, and model/server settings.
+- This repo does not redistribute model weights; use `download_model.py` to fetch weights from HuggingFace.
+
 ## What this skill is (and is not)
 
 - ✅ Provides a `pcat` (pruned cat) workflow for “read big file → prune to task focus → analyze”.
@@ -21,7 +38,7 @@ Windows PowerShell:
 ```powershell
 python "$HOME\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" `
   --repo wh0amibjm/swe-pruner-codex-skill `
-  --ref v0.1.2 `
+  --ref v0.1.3 `
   --path skills/swe-pruner
 ```
 
@@ -30,7 +47,7 @@ macOS/Linux/WSL:
 ```bash
 python3 "$HOME/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
   --repo wh0amibjm/swe-pruner-codex-skill \
-  --ref v0.1.2 \
+  --ref v0.1.3 \
   --path skills/swe-pruner
 ```
 
