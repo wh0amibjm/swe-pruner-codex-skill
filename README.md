@@ -1,39 +1,42 @@
-# Codex Skill: `swe-pruner`
+# Codex Skill：`swe-pruner`
 
-This repo packages **SWE-Pruner** (task-aware context pruning) into a **Codex CLI skill**.
+[中文](README.md) | [English](README.en.md)
 
-Use it when you need to read/inspect **very large files**, **long logs**, or **huge diffs**: prune context *before* it enters the model to cut token cost while keeping relevant implementation details.
+本仓库将 **SWE-Pruner**（任务感知上下文裁剪）打包为 **Codex CLI skill**。
 
-## Upstream project + reported effectiveness
+适用于需要读取/分析 **超大文件**、**超长日志**、**巨型 diff** 的场景：
+在内容进入模型之前先做裁剪，降低 token 成本，同时尽量保留和当前任务相关的实现细节。
 
-This is a packaging / integration repo. The upstream SWE-Pruner project lives at:
+## 上游项目与效果说明
+
+本仓库是集成封装仓库，上游项目地址：
 
 - https://github.com/Ayanami1314/swe-pruner
 
-Reported effectiveness (from the upstream README / paper summary):
+上游 README / 论文摘要中给出的效果（研究数据）：
 
-- A lightweight neural skimmer (~0.6B parameters) selects relevant lines conditioned on an explicit goal/hint.
-- Evaluated across four benchmarks and multiple models.
-- Reported **23–54% token reduction** on multi-turn agent tasks (e.g. SWE-Bench Verified) and up to **14.84× compression** on single-turn tasks (e.g. LongCodeQA), with minimal performance impact.
+- 使用约 0.6B 参数的轻量神经裁剪器，根据明确任务目标（goal/hint）选择相关行。
+- 在 4 个基准 + 多个模型上评估。
+- 在多轮代理任务（如 SWE-Bench Verified）中报告约 **23–54% token 降低**；
+  在单轮任务（如 LongCodeQA）中最高可到 **14.84× 压缩**，且性能影响较小。
 
-Notes:
+说明：
 
-- These numbers are research evaluation results; your mileage will vary based on task, focus query quality, and model/server settings.
-- This repo does not redistribute model weights; use `download_model.py` to fetch weights from HuggingFace.
+- 这些数值来自研究评测，实际效果取决于任务类型、query 质量、模型/服务配置等。
+- 本仓库不直接分发模型权重，请使用 `download_model.py` 从 HuggingFace 下载。
 
-## What this skill is (and is not)
+## 这个 Skill 能做什么 / 不能做什么
 
-- ✅ Provides a `pcat` (pruned cat) workflow for “read big file → prune to task focus → analyze”.
-- ✅ Provides scripts to download weights and run a local pruner server.
-- ❌ Codex CLI currently does **not** expose a Claude Code–style “hook” that transparently intercepts every file read.
-  This skill can only approximate that experience by:
-  - Tiered opt-in strategies (see below).
+- ✅ 提供 `pcat`（pruned cat）工作流：读大文件 → 按任务聚焦裁剪 → 再分析。
+- ✅ 提供下载权重和启动本地 pruner server 的脚本。
+- ❌ Codex CLI 目前没有 Claude Code 那种“透明拦截所有文件读取”的 hook。
+  因此这里只能通过分层策略（见下文）来“接近”该体验。
 
-## Install (pin a release)
+## 安装（建议固定 release）
 
-Use Codex’s built-in skill installer (it installs into `$CODEX_HOME/skills`, usually `~/.codex/skills`).
+使用 Codex 内置 skill 安装器（安装到 `$CODEX_HOME/skills`，通常是 `~/.codex/skills`）。
 
-Windows PowerShell:
+Windows PowerShell：
 
 ```powershell
 python "$HOME\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" `
@@ -42,7 +45,7 @@ python "$HOME\.codex\skills\.system\skill-installer\scripts\install-skill-from-g
   --path skills/swe-pruner
 ```
 
-macOS/Linux/WSL:
+macOS/Linux/WSL：
 
 ```bash
 python3 "$HOME/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
@@ -51,69 +54,72 @@ python3 "$HOME/.codex/skills/.system/skill-installer/scripts/install-skill-from-
   --path skills/swe-pruner
 ```
 
-Restart `codex` after installation.
+安装后重启 `codex`。
 
-## Modes: opt-in vs default
+## 模式说明：按需启用 vs 默认启用
 
-This skill is designed to be **opt-in by default**:
+该 skill 设计为**默认按需启用**：
 
-- Installing the skill does **not** change Codex behavior automatically.
-- You explicitly choose when to use pruning.
+- 仅安装 skill 不会自动改变 Codex 行为。
+- 需要你显式选择何时使用裁剪。
 
-If you want pruning to be the “default” behavior, you enable it via config/rules (see below).
+如果你希望把裁剪变成“默认行为”，可通过配置/rules 启用（见下文分层）。
 
-### Mode A (opt-in / explicit use)
+### 模式 A（按需/显式调用）
 
-When you want pruning, you explicitly call `pcat` or mention `$swe-pruner`.
+当你需要裁剪时，显式调用 `pcat` 或在提示中提 `$swe-pruner`。
 
-- Keep it opt-in:
-  - Do **not** add any `developer_instructions` snippet for pruning, and
-  - Do **not** enable strict rules.
-- Use it explicitly:
-  - Run `pcat.py` / `pcat.ps1`, or
-  - In a prompt: “Use `$swe-pruner` to prune this file before analysis.”
+- 保持按需模式：
+  - 不添加 pruning 的 `developer_instructions` 片段；
+  - 不启用严格 rules。
+- 显式使用：
+  - 运行 `pcat.py` / `pcat.ps1`；或
+  - 在 prompt 里写：`Use $swe-pruner to prune this file before analysis.`
 
-To switch back to opt-in from default mode:
+若你从默认模式切回按需模式：
 
-- Remove the pruning snippet from `~/.codex/config.toml`, and/or
-- Remove/rename the strict `.rules` file from `~/.codex/rules/`.
+- 删除 `~/.codex/config.toml` 中 pruning 片段；和/或
+- 删除/重命名 `~/.codex/rules/` 里的 strict `.rules` 文件。
 
-### Mode B (default / soft guardrail)
+### 模式 B（默认/软约束）
 
-If you want Codex to *prefer* pruning for large file reads by default, add a `developer_instructions` guardrail in `~/.codex/config.toml` (Tier 1 below).
+如果希望 Codex 默认“优先裁剪大文件”，可在 `~/.codex/config.toml` 里加
+`developer_instructions`（见 Tier 1）。
 
-This is still not a real hook, but it often gets you the desired behavior.
+这不是硬 hook，但多数场景可达到预期。
 
-### Mode C (default / hard guardrail)
+### 模式 C（默认/硬约束）
 
-If you want a closer hook-like behavior, enable strict mode rules (Tier 2 below). This can be blunt and may block even small-file reads.
+如果你想更接近 hook 行为，可启用严格 rules（见 Tier 2）。
 
-## Setup (one-time)
+该方式较“硬”，可能连小文件读取也会被拦截。
 
-1) Install dependencies (you need `torch` separately; pick CPU or CUDA build as appropriate):
+## 一次性准备
+
+1) 安装依赖（`torch` 需单独安装，按 CPU/CUDA 选择）：
 
 ```bash
 python -m pip install -U swe-pruner transformers fastapi uvicorn huggingface-hub typer
 python -m pip install -U torch
 ```
 
-2) Download model weights (~1.3GB+):
+2) 下载模型权重（约 1.3GB+）：
 
 ```bash
 python "$HOME/.codex/skills/swe-pruner/scripts/download_model.py" --out "$HOME/.cache/swe-pruner/model"
 ```
 
-3) Optional self-check:
+3) 可选自检：
 
 ```bash
 python "$HOME/.codex/skills/swe-pruner/scripts/self_check.py"
 ```
 
-## Usage: pruned file read (`pcat`)
+## 用法：裁剪文件读取（`pcat`）
 
-Read a big file and only keep relevant lines:
+读取大文件并仅保留任务相关行：
 
-Windows PowerShell:
+Windows PowerShell：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\swe-pruner\scripts\pcat.ps1" `
@@ -121,7 +127,7 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.codex\skills\swe-pruner\scripts
   -Query "What should we focus on?"
 ```
 
-macOS/Linux/WSL:
+macOS/Linux/WSL：
 
 ```bash
 python3 "$HOME/.codex/skills/swe-pruner/scripts/pcat.py" \
@@ -129,37 +135,37 @@ python3 "$HOME/.codex/skills/swe-pruner/scripts/pcat.py" \
   --query "What should we focus on?"
 ```
 
-Common knobs:
+常用参数：
 
-- `--threshold 0.4` keep more (default `0.5`)
-- `--context-lines 2` keep more surrounding context (default `1`)
-- `--no-cache` disable local cache (cache speeds up repeated reads)
-- `--request-timeout 300` increase timeout for huge files
-- `--max-bytes 2000000` guard against accidentally huge inputs (0 = unlimited)
-- `PRUNER_URL=http://host:port/prune` point to a remote pruner server
+- `--threshold 0.4`：保留更多内容（默认 `0.5`）
+- `--context-lines 2`：保留更多上下文（默认 `1`）
+- `--no-cache`：禁用本地缓存
+- `--request-timeout 300`：大文件提高超时时间
+- `--max-bytes 2000000`：防止误读超大输入（0 = 不限制）
+- `PRUNER_URL=http://host:port/prune`：使用远端 pruner server
 
-`pcat.py` will try to auto-start a **local** pruner server when:
+`pcat.py` 会在以下条件下尝试自动启动**本地** pruner server：
 
-- `PRUNER_URL` points to `localhost/127.0.0.1`, and
-- model weights exist (default `~/.cache/swe-pruner/model/model.safetensors`)
+- `PRUNER_URL` 指向 `localhost/127.0.0.1`；且
+- 模型权重已存在（默认 `~/.cache/swe-pruner/model/model.safetensors`）
 
-Server log default:
+默认 server 日志位置：
 
 - `~/.cache/swe-pruner/server.log`
 
-Prune command output / logs (stdin mode):
+stdin 场景示例（如裁剪 diff）：
 
 ```bash
 git diff | python3 "$HOME/.codex/skills/swe-pruner/scripts/pcat.py" --stdin --query "Focus on the relevant hunks"
 ```
 
-## Approximating “prune on every file read” (3 tiers)
+## 如何“接近每次读文件都自动裁剪”（3 个层级）
 
-Codex does not have a real “read file hook”, so you have 3 increasingly strict options.
+Codex 没有真实 read hook，因此可选以下 3 种方案（逐级更强）：
 
-### Tier 1 (recommended): soft guardrail via `developer_instructions`
+### Tier 1（推荐）：`developer_instructions` 软约束
 
-This is the least risky and works everywhere. You opt-in by adding a snippet in `~/.codex/config.toml`:
+在 `~/.codex/config.toml` 增加指令，引导大文件读取走 `pcat`：
 
 ```toml
 developer_instructions = """
@@ -170,44 +176,43 @@ Only read the full file if the user explicitly requests the raw/full text.
 """
 ```
 
-Notes:
+说明：
 
-- This is guidance, not a hard hook. The model can still ignore it in edge cases.
-- If you want **opt-in only**, do not add this snippet; just call `pcat` explicitly when you want pruning.
+- 这属于行为引导，不是硬性 hook。
+- 若你只想按需使用，不要加这段配置。
 
-### Tier 2: hard guardrail via Codex `rules` (strict mode)
+### Tier 2：Codex `rules` 硬约束（strict mode）
 
-If you want closer “hook-like” behavior, use Codex `rules` to forbid common “dump whole file” commands (`Get-Content`, `cat`, `type`, ...), forcing the agent to use `pcat` instead.
+通过 rules 禁用常见全量读取命令（`Get-Content`、`cat`、`type` 等），强制改走 `pcat`。
 
-This repo ships a rule template inside the installed skill folder:
+本仓库已提供模板：
 
 - `~/.codex/skills/swe-pruner/references/strict-file-read.rules`
 
-To enable it, copy it into your Codex rules directory:
+启用方式：复制到 Codex rules 目录：
 
-- Windows: `C:\Users\<you>\.codex\rules\`
-- macOS/Linux: `~/.codex/rules/`
+- Windows：`C:\Users\<you>\.codex\rules\`
+- macOS/Linux：`~/.codex/rules/`
 
-Tradeoffs:
+权衡：
 
-- This is **blunt** (prefix-based), not “file-size aware” — it may block even small-file reads.
-- Keep a quick escape hatch: rename the rule file to disable it.
+- 该方式较“硬”，按前缀匹配，不是按文件大小智能判断，可能误伤小文件读取。
+- 建议保留快速回退手段（重命名该 rules 文件即可禁用）。
 
-### Tier 3 (advanced): shell-level interception (alias/wrapper)
+### Tier 3（高级）：Shell 层拦截（alias/wrapper）
 
-If you really want “every time I type `cat file` it gets pruned”, you can override shell commands/aliases.
-This is **not** Codex-native; it’s your shell config. Use with care.
+如果你想在终端层面也强制 `cat` 走裁剪，可改 shell alias/function。
 
-Pros:
+优点：
 
-- Works even outside Codex (your own terminal habits).
+- 不只在 Codex 内生效。
 
-Cons:
+缺点：
 
-- Risky: you may break scripts/tools that expect raw `cat` output.
-- `pcat` needs a task focus query; without a good query, pruning quality drops.
+- 风险较高，可能影响依赖原始 `cat` 输出的脚本。
+- `pcat` 需要任务 query，query 质量会直接影响裁剪质量。
 
-Example (bash/zsh): override `cat` for single large files only
+bash/zsh 示例（仅单文件且超过阈值时走 `pcat`）：
 
 ```bash
 # ~/.bashrc or ~/.zshrc
@@ -222,7 +227,7 @@ cat() {
 }
 ```
 
-Example (PowerShell): override `cat` after removing the default alias
+PowerShell 示例（先移除默认 alias）：
 
 ```powershell
 # $PROFILE
@@ -238,21 +243,23 @@ function cat {
 }
 ```
 
-## Privacy / Security notes
+## 隐私与安全说明
 
-- If `PRUNER_URL` points to a **remote** pruner server, you are sending pruned requests that include code/log text to that server.
-  Only do this with infrastructure you trust.
+- 如果 `PRUNER_URL` 指向远端服务，你会把待裁剪代码/日志文本发送到该服务。
+  仅在可信基础设施下使用。
 
-## Troubleshooting
+## 常见问题
 
-- Windows-native GPU stacks can be painful. If you hit Transformers attention / CUDA issues, consider **WSL2 + CUDA** or run the pruner server on a Linux box and set `PRUNER_URL`.
-- If `git clone` of the upstream pruner repo fails: upstream tracks weights via **Git LFS**; use `download_model.py` from HuggingFace instead (recommended).
+- Windows 原生 GPU 栈可能会遇到 Transformers attention/CUDA 兼容问题。
+  建议优先用 **WSL2 + CUDA**，或将 pruner server 部署在 Linux 主机并设置 `PRUNER_URL`。
+- 如果上游仓库 `git clone` 失败：上游使用了 **Git LFS** 管理权重。
+  推荐直接用本 skill 提供的 `download_model.py` 从 HuggingFace 下载。
 
-## Repo layout
+## 仓库结构
 
-This repo follows the `openai/skills` style:
+本仓库遵循 `openai/skills` 风格：
 
-```
+```text
 skills/
   swe-pruner/
     SKILL.md
